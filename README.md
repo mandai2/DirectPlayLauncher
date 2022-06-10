@@ -1,7 +1,7 @@
 # DirectPlayLauncher
 Command-line launcher for DirectPlay games
 
-In my searching I have found some other examples of this but they often have unwanted features or the functions are split up which make it difficult for anyone not familiar with the API to understand what the code is actually doing.
+In my searching I have found some similar programs but they often have unwanted features or the functions are split up which make it difficult for anyone not familiar with the API to understand what the code is actually doing.
 
 Example usage:
 
