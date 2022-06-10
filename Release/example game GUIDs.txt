@@ -1,0 +1,2 @@
+Star Wars Galactic Battlegrounds = {EA5DE8EF-D2DE-4046-8585-87895AD7CC4B}
+Star Wars Galactic Battlegrounds: Clone Campaigns = {95883290-2B70-459A-A5EE-7957E5991902}
