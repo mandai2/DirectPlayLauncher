@@ -174,8 +174,8 @@ int _tmain(int argc, TCHAR** argv[])
 						                  pAddress, &dwAddressSize );
 		if( FAILED(hr) )
 		{
-			GlobalFreePtr( pAddress );
 			printf("CreateCompoundAddress error %i\n", hr);
+			GlobalFreePtr( pAddress );
 			goto finish;
 		}
 
@@ -185,24 +185,98 @@ int _tmain(int argc, TCHAR** argv[])
 
 	DWORD processId;
 
-	HANDLE onLaunched = CreateEvent(NULL, FALSE, FALSE, NULL);
+	HANDLE lobbyEvents = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	hr = pDPLobby->RunApplication( 0, &processId, &connectInfo, onLaunched );
+	hr = pDPLobby->RunApplication( 0, &processId, &connectInfo, lobbyEvents );
 
 	if (FAILED(hr))
 	{
 		printf("RunApplication error %i\n", hr);
+		CloseHandle(lobbyEvents);
+		goto finish;
 	}
-	else
+
+	printf("Game launched with PID %i\n", processId);
+
+	while (true)//handle lobby messages
 	{
-		printf("Game launched with PID %i\n", processId);
+		DWORD waitres = WaitForSingleObject(lobbyEvents, INFINITE);
 
-		WaitForSingleObject(onLaunched, INFINITE);//keep this running for some time otherwise game doesn't get to room
+		if (waitres != WAIT_OBJECT_0)
+			break;
 
-		printf("Done\n");
+		DWORD message_flags = 0;
+		DWORD data_size = 0;
+
+		hr = pDPLobby->ReceiveLobbyMessage(0, processId, &message_flags, NULL, &data_size);
+			
+		if (hr != DPERR_BUFFERTOOSMALL)
+		{
+			printf("ReceiveLobbyMessage unexpected %i\n", hr);
+			break;
+		}
+
+		void* data = calloc(1, data_size);
+
+		hr = pDPLobby->ReceiveLobbyMessage(0, processId, &message_flags, data, &data_size);
+
+		//byte* dataBytes = new byte[data_size];
+		//memcpy(dataBytes, data, data_size);//debug bits
+
+		free(data);
+
+		//for (int i = 0; i < data_size; i++)
+		//	printf("%02X ", dataBytes[i]);//debug bits
+		//printf("\n");
+
+		//delete[] dataBytes;
+
+		if (FAILED(hr))
+		{
+			printf("ReceiveLobbyMessage error %i\n", hr);
+			break;
+		}
+
+		if (message_flags == DPLSYS_CONNECTIONSETTINGSREAD)//ok to finish
+		{
+			printf("DPLSYS_CONNECTIONSETTINGSREAD\n");
+			break;
+		}
+
+		if (message_flags == DPLSYS_DPLAYCONNECTSUCCEEDED)
+		{
+			printf("DPLSYS_DPLAYCONNECTSUCCEEDED\n");
+			continue;
+		}
+
+		if (message_flags == DPLSYS_APPTERMINATED)
+		{
+			printf("DPLSYS_APPTERMINATED\n");
+			continue;
+		}
+
+		if (message_flags == DPLSYS_NEWSESSIONHOST)
+		{
+			printf("DPLSYS_NEWSESSIONHOST\n");
+			continue;
+		}
+
+		if (message_flags == DPLSYS_DPLAYCONNECTFAILED)
+		{
+			printf("DPLSYS_DPLAYCONNECTFAILED\n");
+			continue;
+		}
+
+		if (message_flags == DPLSYS_GETPROPERTY)
+		{
+			printf("DPLSYS_GETPROPERTY\n");
+			continue;
+		}
+
+		printf("Got some other flag: %i\n", message_flags);
 	}
 
-	CloseHandle(onLaunched);
+	CloseHandle(lobbyEvents);
 
 finish:
 	LocalFree(szArglist);//done with command line arguments
