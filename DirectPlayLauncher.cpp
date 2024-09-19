@@ -223,8 +223,6 @@ int _tmain(int argc, TCHAR** argv[])
 		//byte* dataBytes = new byte[data_size];
 		//memcpy(dataBytes, data, data_size);//debug bits
 
-		free(data);
-
 		//for (int i = 0; i < data_size; i++)
 		//	printf("%02X ", dataBytes[i]);//debug bits
 		//printf("\n");
@@ -234,46 +232,47 @@ int _tmain(int argc, TCHAR** argv[])
 		if (FAILED(hr))
 		{
 			printf("ReceiveLobbyMessage error %i\n", hr);
+			free(data);
 			break;
 		}
 
-		if (message_flags == DPLSYS_CONNECTIONSETTINGSREAD)//ok to finish
-		{
-			printf("DPLSYS_CONNECTIONSETTINGSREAD\n");
-			break;
-		}
+		DWORD messageType = ((DPLMSG_GENERIC*)data)->dwType;
 
-		if (message_flags == DPLSYS_DPLAYCONNECTSUCCEEDED)
-		{
-			printf("DPLSYS_DPLAYCONNECTSUCCEEDED\n");
-			continue;
-		}
+		free(data);
 
-		if (message_flags == DPLSYS_APPTERMINATED)
+		if (message_flags == DPLMSG_SYSTEM)
 		{
-			printf("DPLSYS_APPTERMINATED\n");
-			continue;
+			if (messageType == DPLSYS_APPTERMINATED)
+			{
+				printf("DPLSYS_APPTERMINATED\n");
+				break;
+			}
+			else if (messageType == DPLSYS_CONNECTIONSETTINGSREAD)
+			{
+				printf("DPLSYS_CONNECTIONSETTINGSREAD\n");
+			}
+			else if (messageType == DPLSYS_DPLAYCONNECTFAILED)
+			{
+				printf("DPLSYS_DPLAYCONNECTFAILED\n");
+			}
+			else if (messageType == DPLSYS_DPLAYCONNECTSUCCEEDED)
+			{
+				printf("DPLSYS_DPLAYCONNECTSUCCEEDED\n");
+			}
+			else
+			{
+				printf("Other system message: %i\n", messageType);
+			}
+			
 		}
-
-		if (message_flags == DPLSYS_NEWSESSIONHOST)
+		else if (message_flags == DPLMSG_STANDARD)
 		{
-			printf("DPLSYS_NEWSESSIONHOST\n");
-			continue;
+			printf("Standard message: %i\n", messageType);
 		}
-
-		if (message_flags == DPLSYS_DPLAYCONNECTFAILED)
+		else
 		{
-			printf("DPLSYS_DPLAYCONNECTFAILED\n");
-			continue;
+			printf("Custom message: %i (flag %i)\n", messageType, message_flags);
 		}
-
-		if (message_flags == DPLSYS_GETPROPERTY)
-		{
-			printf("DPLSYS_GETPROPERTY\n");
-			continue;
-		}
-
-		printf("Got some other flag: %i\n", message_flags);
 	}
 
 	CloseHandle(lobbyEvents);
